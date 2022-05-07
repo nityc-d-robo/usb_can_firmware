@@ -56,16 +56,12 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_CAN_Init(void);
 /* USER CODE BEGIN PFP */
-void sendInit(uint32_t address_, bool angle_reset_, uint16_t motor_max_rpm_, uint8_t gear_rate_);
-void sendSpeed(uint32_t address_, bool phase_, uint16_t rpm_, uint16_t end_);
-void sendAngle(uint32_t address_, bool phase_, uint16_t rpm_, uint16_t angle_);
-void sendLimit(uint32_t address_, bool phase_, uint16_t rpm_, bool port_);
-void sendPWM(uint32_t address_, bool phase_, uint16_t power_);
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint8_t buffer[6] = {255, 255, 255, 255, 255, 255};
 /* USER CODE END 0 */
 
 /**
@@ -100,6 +96,7 @@ int main(void)
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
   HAL_CAN_Start(&hcan);
+  HAL_UART_Receive_IT(&huart2, buffer, 6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -125,13 +122,12 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
-  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -204,7 +200,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 38400;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -250,109 +246,34 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void sendInit(uint32_t address_, uint16_t motor_max_rpm_, uint8_t gear_rate_, bool angle_reset_){
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	CAN_TxHeaderTypeDef TxHeader;
 	uint32_t tx_mailbox;
 	uint8_t tx_datas[CAN_SIZE];
+	uint32_t address;
 
+	address = ((buffer[0] >> 5) == 1) ? 0x100 : (buffer[0] & 0x0f);
+
+	HAL_UART_Transmit(&huart2, buffer, 6, 100);
 	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
 
-	TxHeader.StdId = address_;
+	TxHeader.StdId = address;
 	TxHeader.RTR = CAN_RTR_DATA;
 	TxHeader.IDE = CAN_ID_STD;
 	TxHeader.DLC = CAN_SIZE;
 	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = (uint8_t)INIT;
-	tx_datas[1] = (uint8_t)((motor_max_rpm_ << 8) & 0xff);
-	tx_datas[2] = (uint8_t)(motor_max_rpm_ & 0xff);
-	tx_datas[3] = gear_rate_;
-	tx_datas[4] = (uint8_t)angle_reset_;
-	tx_datas[5] = 0u;
+	tx_datas[0] = (buffer[1] >> 1) & 0x0f;
+	tx_datas[1] = (uint8_t)(buffer[1] & 0x01);
+	tx_datas[2] = buffer[2];
+	tx_datas[3] = buffer[3];
+	tx_datas[4] = buffer[4];
+	tx_datas[5] = buffer[5];
 	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
-}
 
-void sendSpeed(uint32_t address_, bool phase_, uint16_t rpm_, uint16_t end_){
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t tx_mailbox;
-	uint8_t tx_datas[CAN_SIZE];
+	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
 
-	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
-
-	TxHeader.StdId = address_;
-	TxHeader.RTR = CAN_RTR_DATA;
-	TxHeader.IDE = CAN_ID_STD;
-	TxHeader.DLC = CAN_SIZE;
-	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = (uint8_t)SPEED;
-	tx_datas[1] = (uint8_t)phase_;
-	tx_datas[2] = (uint8_t)((rpm_ << 8) & 0xff);
-	tx_datas[3] = (uint8_t)(rpm_ & oxff);
-	tx_datas[4] = (uint8_t)((end_ << 8) & 0xff);
-	tx_datas[5] = (uint8_t)(end_ & 0xff);
-	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
-}
-
-void sendAngle(uint32_t address_, bool phase_, uint16_t rpm_, uint16_t angle_){
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t tx_mailbox;
-	uint8_t tx_datas[CAN_SIZE];
-
-	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
-
-	TxHeader.StdId = address_;
-	TxHeader.RTR = CAN_RTR_DATA;
-	TxHeader.IDE = CAN_ID_STD;
-	TxHeader.DLC = CAN_SIZE;
-	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = (uint8_t)ANGLE;
-	tx_datas[1] = (uint8_t)phase_;
-	tx_datas[2] = (uint8_t)((rpm_ << 8) & 0xff);
-	tx_datas[3] = (uint8_t)(rpm_ & oxff);
-	tx_datas[4] = (uint8_t)((angle_ << 8) & 0xff);
-	tx_datas[5] = (uint8_t)(angle_ & 0xff);
-	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
-}
-
-void sendLimit(uint32_t address_, bool phase_, uint16_t rpm_, bool port_){
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t tx_mailbox;
-	uint8_t tx_datas[CAN_SIZE];
-
-	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
-
-	TxHeader.StdId = address_;
-	TxHeader.RTR = CAN_RTR_DATA;
-	TxHeader.IDE = CAN_ID_STD;
-	TxHeader.DLC = CAN_SIZE;
-	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = (uint8_t)LIM_SW;
-	tx_datas[1] = (uint8_t)phase_;
-	tx_datas[2] = (uint8_t)((rpm_ << 8) & 0xff);
-	tx_datas[3] = (uint8_t)(rpm_ & 0xff);
-	tx_datas[4] = (uint8_t)port_;
-	tx_datas[5] = 0u;
-	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
-}
-
-void sendPWM(uint32_t address_, bool phase_, uint16_t power_){
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t tx_mailbox;
-	uint8_t tx_datas[CAN_SIZE];
-
-	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
-
-	TxHeader.StdId = address_;
-	TxHeader.RTR = CAN_RTR_DATA;
-	TxHeader.IDE = CAN_ID_STD;
-	TxHeader.DLC = CAN_SIZE;
-	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = (uint8_t)PWM;
-	tx_datas[1] = (uint8_t)phase_;
-	tx_datas[2] = (uint8_t)((power_ << 8) & 0xff);
-	tx_datas[3] = (uint8_t)(power_ & 0xff);
-	tx_datas[4] = 0u;
-	tx_datas[5] = 0u;
-	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
+	HAL_UART_Abort(&huart2);
+	HAL_UART_Receive_IT(&huart2, buffer, 6);
 }
 /* USER CODE END 4 */
 
