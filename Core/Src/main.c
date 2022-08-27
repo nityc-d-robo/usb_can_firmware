@@ -132,6 +132,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
@@ -252,9 +253,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	uint8_t tx_datas[CAN_SIZE];
 	uint32_t address;
 
-	address = ((buffer[0] >> 5) == 1) ? 0x100 : (buffer[0] & 0x0f);
+	address = ((buffer[0] >> 7) == 1) ? 0x100 : (buffer[0] & 0xff);
 
-	HAL_UART_Transmit(&huart2, buffer, 6, 100);
+//	HAL_UART_Transmit(&huart2, buffer, 6, 100);
 	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
 
 	TxHeader.StdId = address;
@@ -308,4 +309,3 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
-
