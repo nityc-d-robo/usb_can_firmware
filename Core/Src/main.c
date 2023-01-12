@@ -96,7 +96,7 @@ int main(void)
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
   HAL_CAN_Start(&hcan);
-  HAL_UART_Receive_IT(&huart2, buffer, 7);
+  HAL_UART_Receive_IT(&huart2, buffer, 6);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -253,14 +253,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	uint8_t tx_datas[CAN_SIZE];
 	uint32_t address;
 
-	if(buffer[0] != 0x01){
-		HAL_NVIC_SystemReset();
+	address = ((buffer[0] >> 7) == 1) ? 0x100 : (buffer[0] & 0xff);
 
-		return;
-	}
-
-	address = ((buffer[1] >> 7) == 1) ? 0x100 : (buffer[1] & 0xff);
-
+//	HAL_UART_Transmit(&huart2, buffer, 6, 100);
 	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
 
 	TxHeader.StdId = address;
@@ -268,22 +263,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	TxHeader.IDE = CAN_ID_STD;
 	TxHeader.DLC = CAN_SIZE;
 	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = (buffer[2] >> 1) & 0x0f;
-	tx_datas[1] = (uint8_t)(buffer[2] & 0x01);
-	tx_datas[2] = buffer[3];
-	tx_datas[3] = buffer[4];
-	tx_datas[4] = buffer[5];
-	tx_datas[5] = buffer[6];
+	tx_datas[0] = (buffer[1] >> 1) & 0x0f;
+	tx_datas[1] = (uint8_t)(buffer[1] & 0x01);
+	tx_datas[2] = buffer[2];
+	tx_datas[3] = buffer[3];
+	tx_datas[4] = buffer[4];
+	tx_datas[5] = buffer[5];
 	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
 
 	HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
 
-	if(address == 0x100){
-		HAL_UART_DeInit(&huart2);
-		HAL_UART_Init(&huart2);
-	}
 	HAL_UART_Abort(&huart2);
-	HAL_UART_Receive_IT(&huart2, buffer, 7);
+	HAL_UART_Receive_IT(&huart2, buffer, 6);
 }
 /* USER CODE END 4 */
 
