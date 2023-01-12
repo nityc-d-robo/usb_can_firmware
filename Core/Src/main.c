@@ -22,18 +22,13 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 typedef enum Mode{
-	INIT, STATUS, PWM, SPEED, ANGLE, LIM_SW, FIRE, CHASSIS, FIRE_ALL, ANGLE_ALL
+	INIT, STATUS, PWM, SPEED, ANGLE, LIM_SW
 }Mode;
-
-typedef enum Chassis{
-	FR, FL, BL, BR
-}Chassis;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -61,21 +56,11 @@ static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_CAN_Init(void);
 /* USER CODE BEGIN PFP */
-void sendPwm(uint32_t address_, bool phase_, int32_t power_);
-void moveChassis(int16_t x_, int16_t y_, float yaw_);
-void sendFire(uint32_t address_, bool phase_, uint16_t speed_, uint16_t end_);
-void sendFireAll(uint32_t address_, bool phase_, uint16_t speed_, uint16_t end_);
-void sendAngle(uint32_t address_, bool phase_, uint16_t speed_, uint16_t angle_);
-void sendAngleAll(uint32_t address_, bool phase_, uint16_t speed_, uint16_t angle_);
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-const uint32_t chassis_address[4] = { 0x00, 0x01, 0x02, 0x03 };
-const uint32_t fire_address[2] = { 0x04, 0x05 };
-
 uint8_t buffer[6] = {255, 255, 255, 255, 255, 255};
 /* USER CODE END 0 */
 
@@ -262,102 +247,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void moveChassis(int16_t x_, int16_t y_, float yaw_){
-	int16_t motor_power[4] = {0};
-
-	motor_power[FR] = -sin(M_PI/4)*x_ + cos(M_PI/4)*y_ + yaw_*10;
-	motor_power[FL] = -sin(3*M_PI/4)*x_ + cos(3*M_PI/4)*y_ + yaw_*10;
-	motor_power[BL] = -sin(5*M_PI/4)*x_ + cos(5*M_PI/4)*y_ + yaw_*10;
-	motor_power[BR] = -sin(7*M_PI/4)*x_ + cos(7*M_PI/4)*y_ + yaw_*10;
-
-	for(uint8_t i=0u; i<4;i++){
-		sendPwm(chassis_address[i], true, motor_power[i]);
-	}
-}
-
-void sendPwm(uint32_t address_, bool phase_, int32_t power_){
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t tx_mailbox;
-	uint8_t tx_datas[CAN_SIZE];
-	uint16_t power = 0;
-	bool phase = false;
-
-	if(power_ > 0){
-		phase = phase_;
-		power = power_;
-	}else{
-		phase = !phase_;
-		power = -power_;
-	}
-
-	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
-
-    TxHeader.StdId = address_;
-    TxHeader.RTR = CAN_RTR_DATA;
-    TxHeader.IDE = CAN_ID_STD;
-    TxHeader.DLC = CAN_SIZE;
-    TxHeader.TransmitGlobalTime = DISABLE;
-    tx_datas[0] = PWM;
-    tx_datas[1] = (uint8_t)phase;
-    tx_datas[2] = (power >> 8) & 0xff;
-    tx_datas[3] = power & 0xff;
-    tx_datas[4] = 0;
-    tx_datas[5] = 0;
-    HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
-}
-
-void sendFire(uint32_t address_, bool phase_, uint16_t speed_, uint16_t end_){
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t tx_mailbox;
-	uint8_t tx_datas[CAN_SIZE];
-
-	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
-
-	TxHeader.StdId = address_;
-	TxHeader.RTR = CAN_RTR_DATA;
-	TxHeader.IDE = CAN_ID_STD;
-	TxHeader.DLC = CAN_SIZE;
-	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = FIRE;
-	tx_datas[1] = (uint8_t)phase_;
-	tx_datas[2] = (speed_ >> 8) & 0xff;
-	tx_datas[3] = speed_ & 0xff;
-	tx_datas[4] = (end_ >> 8) & 0xff;
-	tx_datas[5] = end_ & 0xff;
-	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
-}
-
-void sendFireAll(uint32_t address_, bool phase_, uint16_t speed_, uint16_t end_){
-	sendFire(address_, phase_, speed_, end_);
-	sendFire(address_ + 1, !phase_, speed_, end_);
-}
-
-void sendAngle(uint32_t address_, bool phase_, uint16_t speed_, uint16_t angle_){
-	CAN_TxHeaderTypeDef TxHeader;
-	uint32_t tx_mailbox;
-	uint8_t tx_datas[CAN_SIZE];
-
-	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
-
-	TxHeader.StdId = address_;
-	TxHeader.RTR = CAN_RTR_DATA;
-	TxHeader.IDE = CAN_ID_STD;
-	TxHeader.DLC = CAN_SIZE;
-	TxHeader.TransmitGlobalTime = DISABLE;
-	tx_datas[0] = ANGLE;
-	tx_datas[1] = (uint8_t)phase_;
-	tx_datas[2] = (speed_ >> 8) & 0xff;
-	tx_datas[3] = speed_ & 0xff;
-	tx_datas[4] = (angle_ >> 8) & 0xff;
-	tx_datas[5] = angle_ & 0xff;
-	HAL_CAN_AddTxMessage(&hcan, &TxHeader, tx_datas, &tx_mailbox);
-}
-
-void sendAngleAll(uint32_t address_, bool phase_, uint16_t speed_, uint16_t angle_){
-	sendAngle(address_, phase_, speed_, angle_);
-	sendAngle(address_ + 1, !phase_, speed_, angle_);
-}
-
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	CAN_TxHeaderTypeDef TxHeader;
 	uint32_t tx_mailbox;
@@ -372,43 +261,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 
 	address = ((buffer[1] >> 7) == 1) ? 0x100 : (buffer[1] & 0xff);
 
-	if(((buffer[2] >> 1) & 0x0f) == CHASSIS){
-		moveChassis((int16_t)(buffer[1] << 8 | buffer[3]), (int16_t)(buffer[4] << 8 | buffer[5]), (int8_t)buffer[6]);
-
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-
-		HAL_UART_Abort(&huart2);
-		HAL_UART_Receive_IT(&huart2, buffer, 7);
-		return;
-	}else if(((buffer[2] >> 1) & 0x0f) == FIRE_ALL){
-		sendFireAll(address, (bool)(buffer[2] & 0x01), (uint16_t)(buffer[3] << 8 | buffer[4]), (uint16_t)(buffer[5] << 8 | buffer[6]));
-
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-
-		HAL_UART_Abort(&huart2);
-		HAL_UART_Receive_IT(&huart2, buffer, 7);
-		return;
-	}else if(((buffer[2] >> 1) & 0x0f) == ANGLE_ALL){
-		sendAngleAll(address, (bool)(buffer[2] & 0x01), (uint16_t)(buffer[3] << 8 | buffer[4]), (uint16_t)(buffer[5] << 8 | buffer[6]));
-
-		HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_3);
-
-		HAL_UART_Abort(&huart2);
-		HAL_UART_Receive_IT(&huart2, buffer, 7);
-		return;
-	}
-
-	if(buffer[2] >> 1 > FIRE || (address > 0x040 && address != 0x100)){
-		HAL_UART_DeInit(&huart2);
-		HAL_UART_Init(&huart2);
-
-		HAL_UART_Abort(&huart2);
-		HAL_UART_Receive_IT(&huart2, buffer, 7);
-
-		return;
-	}
-
-//	HAL_UART_Transmit(&huart2, buffer, 6, 100);
 	while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan) <= 0);
 
 	TxHeader.StdId = address;
