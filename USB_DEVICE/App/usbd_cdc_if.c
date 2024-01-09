@@ -95,6 +95,7 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 extern CAN_HandleTypeDef hcan1;
+uint8_t tx_datas[MODE_LENGTH][USB_RX_SIZE] = {0};
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -267,21 +268,20 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   if(*Len == USB_RX_SIZE){
 	  CAN_TxHeaderTypeDef tx_header;
 	  uint32_t tx_mailbox;
-	  uint8_t tx_datas[USB_RX_SIZE];
 
 	  while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) <= 0);
 
-	  tx_header.StdId = (Buf[1] == MASTER_ID) ? Buf[0] : Buf[1];
+	  tx_header.StdId = (uint16_t)(Buf[0] << 8 | Buf[1]);
 	  tx_header.RTR = CAN_RTR_DATA;
 	  tx_header.IDE = CAN_ID_STD;
 	  tx_header.DLC = USB_RX_SIZE;
 	  tx_header.TransmitGlobalTime = DISABLE;
-	  tx_datas[0] = Buf[0];
-	  tx_datas[1] = (uint8_t)MASTER_ID;
+	  tx_datas[Buf[2]][2 * (Buf[3] - 1)] = (uint8_t)((Buf[4] >> 8) & 0xff);
+	  tx_datas[Buf[2]][2 * (Buf[3] - 1) + 1] = (uint8_t)(Buf[5] & 0xff);
 
-	  memcpy(tx_datas+2, Buf+2, USB_RX_SIZE-2);
+	  //memcpy(tx_datas+2, Buf+2, USB_RX_SIZE-2);
 
-	  HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_datas, &tx_mailbox);
+	  HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_datas[Buf[2]], &tx_mailbox);
 
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
   }

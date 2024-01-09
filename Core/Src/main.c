@@ -28,7 +28,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define CAN_TX_SIZE 10
+#define CAN_TX_SIZE 8
 #define CAN_RX_SIZE 8
 /* USER CODE END PTD */
 
@@ -195,7 +195,7 @@ static void MX_CAN1_Init(void)
   filter.FilterBank           = 0;
   filter.FilterMode           = CAN_FILTERMODE_IDLIST;
   filter.SlaveStartFilterBank = 14;
-  filter.FilterActivation     = ENABLE;
+  filter.FilterActivation     = DISABLE;
 
   HAL_CAN_ConfigFilter(&hcan1, &filter);
   /* USER CODE END CAN1_Init 2 */
@@ -236,7 +236,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_){
 
 	if (HAL_CAN_GetRxMessage(hcan_, CAN_RX_FIFO0, &rx_header, rx_data) == HAL_OK){
 		if(rx_header.DLC == CAN_RX_SIZE){
-			memcpy(tx_buffer, rx_data, CAN_RX_SIZE);
+			tx_buffer[0] = (uint8_t)((rx_header.StdId >> 8) & 0xff);
+      tx_buffer[1] = (uint8_t)(rx_header.StdId & 0xff);
+      tx_buffer[2] = (uint8_t)((rx_data[0] >> 8) & 0xff);
+      tx_buffer[3] = (uint8_t)(rx_data[1] & 0xff);
+      tx_buffer[4] = (uint8_t)((rx_data[2] >> 8) & 0xff);
+      tx_buffer[5] = (uint8_t)(rx_data[3] & 0xff);
+      tx_buffer[6] = (uint8_t)((rx_data[4] >> 8) & 0xff);
+      tx_buffer[7] = (uint8_t)(rx_data[5] & 0xff);
 
 			CDC_Transmit_FS(tx_buffer, CAN_RX_SIZE);
 
