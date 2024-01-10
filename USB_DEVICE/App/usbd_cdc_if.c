@@ -276,8 +276,8 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	  tx_header.IDE = CAN_ID_STD;
 	  tx_header.DLC = USB_RX_SIZE;
 	  tx_header.TransmitGlobalTime = DISABLE;
-	  tx_datas[Buf[2]][2 * (Buf[3] - 1)] = (uint8_t)((Buf[4] >> 8) & 0xff);
-	  tx_datas[Buf[2]][2 * (Buf[3] - 1) + 1] = (uint8_t)(Buf[5] & 0xff);
+	  tx_datas[Buf[2]][2 * ((Buf[2] % 5) - 1)] = (uint8_t)(Buf[3]);
+	  tx_datas[Buf[2]][2 * ((Buf[2] % 5) - 1) + 1] = (uint8_t)(Buf[4]);
 
 	  //memcpy(tx_datas+2, Buf+2, USB_RX_SIZE-2);
 

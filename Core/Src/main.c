@@ -162,8 +162,8 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE BEGIN CAN1_Init 0 */
 	CAN_FilterTypeDef filter;
-	uint32_t filter_id = 0x50 << 21;
-	uint32_t filter_mask = (0xff << 21) | 0x04;
+	//uint32_t filter_id = 0x50 << 21;
+	//uint32_t filter_mask = (0xff << 21) | 0x04;
   /* USER CODE END CAN1_Init 0 */
 
   /* USER CODE BEGIN CAN1_Init 1 */
@@ -186,7 +186,8 @@ static void MX_CAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN1_Init 2 */
-  filter.FilterIdHigh         = (filter_id >> 16) & 0xffff;
+  
+  /*filter.FilterIdHigh         = (filter_id >> 16) & 0xffff;
   filter.FilterIdLow          = filter_id & 0xffff;
   filter.FilterMaskIdHigh     = (filter_mask >> 16) & 0xffff;
   filter.FilterMaskIdLow      = filter_mask & 0xffff;
@@ -195,7 +196,18 @@ static void MX_CAN1_Init(void)
   filter.FilterBank           = 0;
   filter.FilterMode           = CAN_FILTERMODE_IDLIST;
   filter.SlaveStartFilterBank = 14;
-  filter.FilterActivation     = DISABLE;
+  filter.FilterActivation     = DISABLE;*/
+
+  filter.FilterIdHigh         = 0;                        // フィルターID(上位16ビット)
+  filter.FilterIdLow          = 0;                        // フィルターID(下位16ビット)
+  filter.FilterMaskIdHigh     = 0;                        // フィルターマスク(上位16ビット)
+  filter.FilterMaskIdLow      = 0;                        // フィルターマスク(下位16ビット)
+  filter.FilterScale          = CAN_FILTERSCALE_32BIT;    // フィルタースケール
+  filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;         // フィルターに割り当てるFIFO
+  filter.FilterBank           = 0;                        // フィルターバンクNo
+  filter.FilterMode           = CAN_FILTERMODE_IDMASK;    // フィルターモード
+  filter.SlaveStartFilterBank = 14;                       // スレーブCANの開始フィルターバンクNo
+  filter.FilterActivation     = ENABLE;                   // フィルター無効／有効
 
   HAL_CAN_ConfigFilter(&hcan1, &filter);
   /* USER CODE END CAN1_Init 2 */
@@ -232,7 +244,7 @@ static void MX_GPIO_Init(void)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_){
 	CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[CAN_RX_SIZE] = {0u};
-	uint8_t tx_buffer[CAN_RX_SIZE] = {0u};
+	uint8_t tx_buffer[128] = {0u};
 
 	if (HAL_CAN_GetRxMessage(hcan_, CAN_RX_FIFO0, &rx_header, rx_data) == HAL_OK){
 		if(rx_header.DLC == CAN_RX_SIZE){
