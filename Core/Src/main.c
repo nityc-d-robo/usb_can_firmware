@@ -244,7 +244,7 @@ static void MX_GPIO_Init(void)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_){
 	CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[CAN_RX_SIZE] = {0u};
-	uint8_t tx_buffer[128] = {0u};
+	uint8_t tx_buffer[128] = {0u}; //USB_FS_MAXよりも十分大きな配列サイズを指定する必要がある
 
 	if (HAL_CAN_GetRxMessage(hcan_, CAN_RX_FIFO0, &rx_header, rx_data) == HAL_OK){
 		if(rx_header.DLC == CAN_RX_SIZE){
