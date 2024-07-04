@@ -282,12 +282,12 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 			  tx_header.StdId = 0x200;
 			  robomaster_tx_datas[0][2 * ((Buf[2] % 5) - 1)] = (uint8_t)(Buf[3]);
 			  robomaster_tx_datas[0][2 * ((Buf[2] % 5) - 1) + 1] = (uint8_t)(Buf[4]);
-			  HAL_CAN_AddTxMessage(&hcan1, &tx_header, robomaster_tx_datas, &tx_mailbox);
+			  HAL_CAN_AddTxMessage(&hcan1, &tx_header, robomaster_tx_datas[0], &tx_mailbox);
 		  }else{
 			  tx_header.StdId = 0x199;
 			  robomaster_tx_datas[1][2 * (Buf[2] % 5)] = (uint8_t)(Buf[3]);
 			  robomaster_tx_datas[1][2 * (Buf[2] % 5) + 1] = (uint8_t)(Buf[4]);
-			  HAL_CAN_AddTxMessage(&hcan1, &tx_header, robomaster_tx_datas, &tx_mailbox);
+			  HAL_CAN_AddTxMessage(&hcan1, &tx_header, robomaster_tx_datas[1], &tx_mailbox);
 		  }
 	  }else{
 		  tx_header.StdId = (Buf[1] == MASTER_ID) ? Buf[0] : Buf[1];
