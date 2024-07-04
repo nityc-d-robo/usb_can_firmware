@@ -95,6 +95,7 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 extern CAN_HandleTypeDef hcan1;
+uint8_t robomaster_tx_datas[2][ROBOMASTER_TX_SIZE] = {0};
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -264,24 +265,38 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-  if(*Len == USB_RX_SIZE){
+  if(*Len == USB_RX_SIZE || *Len == ROBOMASTER_TX_SIZE){
 	  CAN_TxHeaderTypeDef tx_header;
 	  uint32_t tx_mailbox;
-	  uint8_t tx_datas[USB_RX_SIZE];
+	  uint8_t drobo_tx_datas[USB_RX_SIZE];
 
 	  while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) <= 0);
 
-	  tx_header.StdId = (Buf[1] == MASTER_ID) ? Buf[0] : Buf[1];
 	  tx_header.RTR = CAN_RTR_DATA;
 	  tx_header.IDE = CAN_ID_STD;
-	  tx_header.DLC = USB_RX_SIZE;
 	  tx_header.TransmitGlobalTime = DISABLE;
-	  tx_datas[0] = Buf[0];
-	  tx_datas[1] = (uint8_t)MASTER_ID;
 
-	  memcpy(tx_datas+2, Buf+2, USB_RX_SIZE-2);
-
-	  HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_datas, &tx_mailbox);
+	  if(Buf[0] == 0x30){
+		  tx_header.DLC = ROBOMASTER_TX_SIZE;
+		  if(Buf[2] < 5){
+			  tx_header.StdId = 0x200;
+			  robomaster_tx_datas[0][2 * ((Buf[2] % 5) - 1)] = (uint8_t)(Buf[3]);
+			  robomaster_tx_datas[0][2 * ((Buf[2] % 5) - 1) + 1] = (uint8_t)(Buf[4]);
+			  HAL_CAN_AddTxMessage(&hcan1, &tx_header, robomaster_tx_datas, &tx_mailbox);
+		  }else{
+			  tx_header.StdId = 0x199;
+			  robomaster_tx_datas[1][2 * (Buf[2] % 5)] = (uint8_t)(Buf[3]);
+			  robomaster_tx_datas[1][2 * (Buf[2] % 5) + 1] = (uint8_t)(Buf[4]);
+			  HAL_CAN_AddTxMessage(&hcan1, &tx_header, robomaster_tx_datas, &tx_mailbox);
+		  }
+	  }else{
+		  tx_header.StdId = (Buf[1] == MASTER_ID) ? Buf[0] : Buf[1];
+		  tx_header.DLC = USB_RX_SIZE;
+		  drobo_tx_datas[0] = Buf[0];
+		  drobo_tx_datas[1] = (uint8_t)MASTER_ID;
+		  memcpy(drobo_tx_datas+2, Buf+2, USB_RX_SIZE-2);
+		  HAL_CAN_AddTxMessage(&hcan1, &tx_header, drobo_tx_datas, &tx_mailbox);
+	  }
 
 	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
   }

@@ -162,8 +162,13 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE BEGIN CAN1_Init 0 */
 	CAN_FilterTypeDef filter;
-	uint32_t filter_id = 0x50 << 21;
-	uint32_t filter_mask = (0xff << 21) | 0x04;
+	// match 50, F0
+	uint32_t filter_id_1 = 0x50 << 5;
+	uint32_t filter_mask_1 = (0x5F << 5) | 0x8;
+
+	// match 200 ~ 20F
+	uint32_t filter_id_2 = 0x201 << 5;
+	uint32_t filter_mask_2 = (0xFF0 << 5) | 0x8;
   /* USER CODE END CAN1_Init 0 */
 
   /* USER CODE BEGIN CAN1_Init 1 */
@@ -186,14 +191,14 @@ static void MX_CAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN1_Init 2 */
-  filter.FilterIdHigh         = (filter_id >> 16) & 0xffff;
-  filter.FilterIdLow          = filter_id & 0xffff;
-  filter.FilterMaskIdHigh     = (filter_mask >> 16) & 0xffff;
-  filter.FilterMaskIdLow      = filter_mask & 0xffff;
-  filter.FilterScale          = CAN_FILTERSCALE_32BIT;
+  filter.FilterIdHigh         = filter_id_1;
+  filter.FilterIdLow          = filter_id_2;
+  filter.FilterMaskIdHigh     = filter_mask_1;
+  filter.FilterMaskIdLow      = filter_mask_2;
+  filter.FilterScale          = CAN_FILTERSCALE_16BIT;
   filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
   filter.FilterBank           = 0;
-  filter.FilterMode           = CAN_FILTERMODE_IDLIST;
+  filter.FilterMode           = CAN_FILTERMODE_IDMASK;
   filter.SlaveStartFilterBank = 14;
   filter.FilterActivation     = ENABLE;
 
