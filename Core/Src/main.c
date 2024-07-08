@@ -243,12 +243,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_){
 		if(rx_header.DLC == CAN_RX_SIZE){
 			tx_buffer[0] = (uint8_t)((rx_header.StdId >> 8) & 0xff);
 			tx_buffer[1] = (uint8_t)(rx_header.StdId & 0xff);
-			tx_buffer[2] = (uint8_t)(rx_data[0] & 0xff);
-			tx_buffer[3] = (uint8_t)(rx_data[1] & 0xff);
-			tx_buffer[4] = (uint8_t)(rx_data[2] & 0xff);
-			tx_buffer[5] = (uint8_t)(rx_data[3] & 0xff);
-			tx_buffer[6] = (uint8_t)(rx_data[4] & 0xff);
-			tx_buffer[7] = (uint8_t)(rx_data[5] & 0xff);
+			tx_buffer[2] = rx_data[0]; // angle
+			tx_buffer[3] = rx_data[1];
+			tx_buffer[4] = rx_data[2]; // speed
+			tx_buffer[5] = rx_data[3];
+			tx_buffer[6] = rx_data[4]; // current
+			tx_buffer[7] = rx_data[5];
 
 			CDC_Transmit_FS(tx_buffer, CAN_RX_SIZE);
 
