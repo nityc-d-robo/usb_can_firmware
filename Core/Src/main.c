@@ -242,11 +242,11 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_){
 	if (HAL_CAN_GetRxMessage(hcan_, CAN_RX_FIFO0, &rx_header, rx_data) == HAL_OK){
 		if(rx_header.DLC == CAN_RX_SIZE){
       if((rx_header.StdId & 0xff0) == 0x200) {
-        tx_buffer[0] = (uint8_t)((rx_header.StdId >> 8) & 0xff);
-			  tx_buffer[1] = (uint8_t)(rx_header.StdId & 0xff);
+        tx_buffer[0] = 0x30 + (rx_header.StdId & 0x0f);
+			  tx_buffer[1] = 0;
       } else {
         tx_buffer[0] = rx_data[6];
-			  tx_buffer[1] = rx_data[7];
+			  tx_buffer[1] = 0;
       }
 			tx_buffer[2] = rx_data[0]; // angle
 			tx_buffer[3] = rx_data[1];
