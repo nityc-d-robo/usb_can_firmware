@@ -191,10 +191,10 @@ static void MX_CAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN1_Init 2 */
-  filter.FilterIdHigh         = filter_id_1;
-  filter.FilterIdLow          = filter_id_2;
-  filter.FilterMaskIdHigh     = filter_mask_1;
-  filter.FilterMaskIdLow      = filter_mask_2;
+  filter.FilterIdHigh         = 0;
+  filter.FilterIdLow          = 0;
+  filter.FilterMaskIdHigh     = 0;
+  filter.FilterMaskIdLow      = 0;
   filter.FilterScale          = CAN_FILTERSCALE_16BIT;
   filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
   filter.FilterBank           = 0;
