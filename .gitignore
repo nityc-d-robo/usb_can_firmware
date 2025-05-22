@@ -1,3 +1,9 @@
 /Debug/
 /STM32F446RETX_FLASH.ld
 /STM32F446RETX_RAM.ld
+/STM32F446XX_FLASH.ld
+/.vscode/
+/build/
+/cmake/
+/CMakeLists.txt
+/CMakePresets.json
