@@ -23,6 +23,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "string.h"
+#include "main.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -264,28 +265,14 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-  if(*Len == USB_RX_SIZE){
-	  CAN_TxHeaderTypeDef tx_header;
-	  uint32_t tx_mailbox;
-	  uint8_t tx_datas[USB_RX_SIZE];
+  if (*Len != USB_RX_SIZE) { return 0; }
 
-	  while(HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) <= 0);
-
-	  tx_header.StdId = (Buf[1] == MASTER_ID) ? Buf[0] : Buf[1];
-	  tx_header.RTR = CAN_RTR_DATA;
-	  tx_header.IDE = CAN_ID_STD;
-	  tx_header.DLC = USB_RX_SIZE;
-	  tx_header.TransmitGlobalTime = DISABLE;
-	  tx_datas[0] = Buf[0];
-	  tx_datas[1] = (uint8_t)MASTER_ID;
-
-	  memcpy(tx_datas+2, Buf+2, USB_RX_SIZE-2);
-
-	  HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_datas, &tx_mailbox);
-
-	  HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-  }
-
+  if (USB_NEXT_IDX(usb_buf.write_idx) == usb_buf.read_idx) {
+    return 0;
+  } else {
+    memcpy(usb_buf.buf[usb_buf.write_idx], Buf, USB_RX_SIZE);
+    usb_buf.write_idx = USB_NEXT_IDX(usb_buf.write_idx);
+  } 
   return (USBD_OK);
   /* USER CODE END 6 */
 }

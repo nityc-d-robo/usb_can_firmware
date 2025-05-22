@@ -19,6 +19,7 @@
 /* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
+
 #ifndef __USBD_CDC_IF_H__
 #define __USBD_CDC_IF_H__
 
@@ -30,7 +31,7 @@
 #include "usbd_cdc.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include "main.h"
 /* USER CODE END INCLUDE */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -51,8 +52,6 @@
 #define APP_RX_DATA_SIZE  2048
 #define APP_TX_DATA_SIZE  2048
 /* USER CODE BEGIN EXPORTED_DEFINES */
-#define USB_RX_SIZE 10
-#define USB_TX_SIZE 8
 #define MASTER_ID 0x60
 /* USER CODE END EXPORTED_DEFINES */
 

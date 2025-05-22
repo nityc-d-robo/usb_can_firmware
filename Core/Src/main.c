@@ -28,8 +28,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-#define CAN_TX_SIZE 10
-#define CAN_RX_SIZE 8
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -38,14 +36,12 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
 /* USER CODE BEGIN PV */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,6 +54,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+CanRingBuf can_buf;
+UsbRingBuf usb_buf;
 /* USER CODE END 0 */
 
 /**
@@ -66,6 +64,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -102,6 +101,41 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    if (can_buf.read_idx != can_buf.write_idx) {
+      CanFrame *f = &can_buf.buf[can_buf.read_idx];
+      if (CDC_Transmit_FS(f->data, CAN_RX_SIZE) != USBD_OK) {
+        Error_Handler();
+      }
+      can_buf.read_idx = CAN_NEXT_IDX(can_buf.read_idx);
+    }
+      
+
+    if (usb_buf.read_idx != usb_buf.write_idx) {
+      if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0){
+
+        uint8_t *f = usb_buf.buf[usb_buf.read_idx];
+        CAN_TxHeaderTypeDef tx_header;
+        uint32_t tx_mailbox;
+        uint8_t tx_datas[USB_RX_SIZE];
+
+        tx_header.StdId = (f[1] == MASTER_ID) ? f[0] : f[1];
+        tx_header.RTR = CAN_RTR_DATA;
+        tx_header.IDE = CAN_ID_STD;
+        tx_header.DLC = USB_RX_SIZE;
+        tx_header.TransmitGlobalTime = DISABLE;
+        tx_datas[0] = f[0];
+        tx_datas[1] = (uint8_t)MASTER_ID;
+
+        memcpy(tx_datas+2, f+2, USB_RX_SIZE-2);
+
+        HAL_StatusTypeDef status = HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_datas, &tx_mailbox);
+        if (status != HAL_OK) {
+          Error_Handler();
+        }
+        usb_buf.read_idx = USB_NEXT_IDX(usb_buf.read_idx);
+        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+      }
+    }
   }
   /* USER CODE END 3 */
 }
@@ -162,7 +196,7 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE BEGIN CAN1_Init 0 */
 	CAN_FilterTypeDef filter;
-	uint32_t filter_id = 0x50 << 21;
+	uint32_t filter_id = 0x60 << 21;
 	uint32_t filter_mask = (0xff << 21) | 0x04;
   /* USER CODE END CAN1_Init 0 */
 
@@ -210,6 +244,9 @@ static void MX_CAN1_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOH_CLK_ENABLE();
@@ -226,22 +263,28 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan_){
-	CAN_RxHeaderTypeDef rx_header;
+  CAN_RxHeaderTypeDef rx_header;
 	uint8_t rx_data[CAN_RX_SIZE] = {0u};
-	uint8_t tx_buffer[CAN_RX_SIZE] = {0u};
 
-	if (HAL_CAN_GetRxMessage(hcan_, CAN_RX_FIFO0, &rx_header, rx_data) == HAL_OK){
-		if(rx_header.DLC == CAN_RX_SIZE){
-			memcpy(tx_buffer, rx_data, CAN_RX_SIZE);
-
-			CDC_Transmit_FS(tx_buffer, CAN_RX_SIZE);
-
-			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_6);
-		}
+	if (HAL_CAN_GetRxMessage(hcan_, CAN_RX_FIFO0, &rx_header, rx_data) != HAL_OK) {
+    return;
+  }
+  // can_bufが満杯なら破棄
+  if (CAN_NEXT_IDX(can_buf.write_idx) == can_buf.read_idx) {
+    return;
+  } else {
+      if(rx_header.DLC == CAN_RX_SIZE) {
+      can_buf.buf[can_buf.write_idx].header = rx_header;
+      memcpy(can_buf.buf[can_buf.write_idx].data, rx_data, CAN_RX_SIZE);
+      can_buf.write_idx = CAN_NEXT_IDX(can_buf.write_idx);
+    }
 	}
 }
 /* USER CODE END 4 */
