@@ -196,8 +196,15 @@ static void MX_CAN1_Init(void)
 
   /* USER CODE BEGIN CAN1_Init 0 */
 	CAN_FilterTypeDef filter;
-	uint32_t filter_id = 0x60 << 21;
-	uint32_t filter_mask = (0xff << 21) | 0x04;
+
+  /* node id    is 0bxxxx 00 00001 */
+	uint32_t filter_id = 0x01;
+  /* broad cast is 0bxxxx 00 00000 */
+  uint32_t broadcast_id = 0x00;
+
+  /* filtermask is 0b0000 11 11111*/
+	uint32_t filter_mask = 0x7F;
+
   /* USER CODE END CAN1_Init 0 */
 
   /* USER CODE BEGIN CAN1_Init 1 */
@@ -220,15 +227,15 @@ static void MX_CAN1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN1_Init 2 */
-  filter.FilterIdHigh         = (filter_id >> 16) & 0xffff;
-  filter.FilterIdLow          = filter_id & 0xffff;
-  filter.FilterMaskIdHigh     = (filter_mask >> 16) & 0xffff;
-  filter.FilterMaskIdLow      = filter_mask & 0xffff;
-  filter.FilterScale          = CAN_FILTERSCALE_32BIT;
+  filter.FilterIdHigh         = broadcast_id << 5;
+  filter.FilterIdLow          = filter_id << 5;
+  filter.FilterMaskIdHigh     = (filter_mask << 5) | 0x8;
+  filter.FilterMaskIdLow      = (filter_mask << 5) | 0x8;
+  filter.FilterScale          = CAN_FILTERSCALE_16BIT;
   filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
   filter.FilterBank           = 0;
-  filter.FilterMode           = CAN_FILTERMODE_IDLIST;
-  filter.SlaveStartFilterBank = 14;
+  filter.FilterMode           = CAN_FILTERMODE_IDMASK;
+  filter.SlaveStartFilterBank = 14; 
   filter.FilterActivation     = ENABLE;
 
   HAL_CAN_ConfigFilter(&hcan1, &filter);
@@ -304,8 +311,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
