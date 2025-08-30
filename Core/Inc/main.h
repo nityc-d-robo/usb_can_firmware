@@ -36,14 +36,43 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-#define MASTER_ID 0x60
-
 #define CAN_TX_SIZE 8
 #define CAN_RX_SIZE 8
 #define CAN_RINGBUF_SIZE 256
+
 #define USB_RINGBUF_SIZE 64
 #define USB_RX_SIZE 8
 #define USB_TX_SIZE 8
+
+/* FUNC CODE (4bit) */
+#define FUNC_CODE_MASK  (0x0FU << 7)
+
+#define NMT_CODE        (0x00U << 7)
+#define SYNC_CODE       (0x01U << 7)
+#define EMCY_CODE       (0x02U << 7)
+#define TIME_CODE       (0x05U << 7)
+#define TX_PDO1_CODE    (0x06U << 7)
+#define RX_PDO1_CODE    (0x07U << 7)
+#define TX_PDO2_CODE    (0x08U << 7)
+#define RX_PDO2_CODE    (0x09U << 7)
+#define TX_SDO_CODE     (0x0AU << 7)
+#define RX_SDO_CODE     (0x0BU << 7)
+#define NMT_ERR_CODE    (0x0CU << 7)
+
+/* TYPE ID (2bit) */
+#define TYPE_ID_MASK    (0x03U << 5)
+
+#define MD              (0x01U << 5)
+#define OTHER           (0x02U << 5)
+
+/* NODE ID (5bit) */
+#define NODE_ID_MASK    0x1FU
+
+/* SPECIAL NODE ID (7bit)*/
+#define ALL_NODE_ID_MASK 0x7FU
+
+#define BROADCAST_ID    0x00U
+#define USB_CAN_ID      0x01U
 
 typedef struct {
   CAN_RxHeaderTypeDef header;
