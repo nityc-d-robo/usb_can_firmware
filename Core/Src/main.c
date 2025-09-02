@@ -112,7 +112,6 @@ int main(void)
 
     if (usb_buf.read_idx != usb_buf.write_idx) {
       if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) > 0){
-
         uint8_t *f = usb_buf.buf[usb_buf.read_idx];
         CAN_TxHeaderTypeDef tx_header;
         uint32_t tx_mailbox;
@@ -304,8 +303,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
