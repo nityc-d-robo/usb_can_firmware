@@ -41,8 +41,8 @@ extern "C" {
 #define CAN_RINGBUF_SIZE 256
 
 #define USB_RINGBUF_SIZE 64
-#define USB_RX_SIZE 8
-#define USB_TX_SIZE 8
+#define USB_RX_SIZE 10
+#define USB_TX_SIZE 10
 
 /* FUNC CODE (4bit) */
 #define FUNC_CODE_MASK  (0x0FU << 7)
