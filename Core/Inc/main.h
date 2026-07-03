@@ -42,7 +42,7 @@ extern "C" {
 #define CAN_RX_SIZE 8
 #define CAN_RINGBUF_SIZE 256
 #define USB_RINGBUF_SIZE 64
-#define USB_RX_SIZE 8
+#define USB_RX_SIZE 10
 #define USB_TX_SIZE 8
 
 typedef struct {

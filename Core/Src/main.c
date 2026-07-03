@@ -115,17 +115,15 @@ int main(void)
         uint8_t *f = usb_buf.buf[usb_buf.read_idx];
         CAN_TxHeaderTypeDef tx_header;
         uint32_t tx_mailbox;
-        uint8_t tx_datas[USB_RX_SIZE];
+        uint8_t tx_datas[CAN_TX_SIZE];
 
-        tx_header.StdId = (f[1] == MASTER_ID) ? f[0] : f[1];
+        tx_header.StdId = (f[0] << 8) | f[1];
         tx_header.RTR = CAN_RTR_DATA;
         tx_header.IDE = CAN_ID_STD;
-        tx_header.DLC = USB_RX_SIZE;
+        tx_header.DLC = CAN_TX_SIZE;
         tx_header.TransmitGlobalTime = DISABLE;
-        tx_datas[0] = f[0];
-        tx_datas[1] = (uint8_t)MASTER_ID;
 
-        memcpy(tx_datas+2, f+2, USB_RX_SIZE-2);
+        memcpy(tx_datas, f+2, USB_RX_SIZE-2);
 
         HAL_StatusTypeDef status = HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_datas, &tx_mailbox);
         if (status != HAL_OK) {
