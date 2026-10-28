@@ -115,15 +115,14 @@ int main(void)
         uint8_t *f = usb_buf.buf[usb_buf.read_idx];
         CAN_TxHeaderTypeDef tx_header;
         uint32_t tx_mailbox;
-        uint8_t tx_datas[CAN_TX_SIZE];
-
+        uint8_t length = f[2];
+        uint8_t tx_datas[length];
         tx_header.StdId = (f[0] << 8) | f[1];
         tx_header.RTR = CAN_RTR_DATA;
         tx_header.IDE = CAN_ID_STD;
-        tx_header.DLC = CAN_TX_SIZE;
+        tx_header.DLC = length;
         tx_header.TransmitGlobalTime = DISABLE;
-
-        memcpy(tx_datas, f+2, USB_RX_SIZE-2);
+        memcpy(tx_datas, f+3, length);
 
         HAL_StatusTypeDef status = HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_datas, &tx_mailbox);
         if (status != HAL_OK) {
@@ -131,6 +130,16 @@ int main(void)
         }
         usb_buf.read_idx = USB_NEXT_IDX(usb_buf.read_idx);
         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+
+          uint32_t esr = hcan1.Instance->ESR;
+
+          uint32_t ESR = esr;
+          uint32_t TEC = (esr >> 16) & 0xFF;
+          uint32_t REC = (esr >> 24) & 0xFF;
+          uint32_t LEC = (esr >> 4) & 0x07;
+          uint32_t EWGF = esr & 0x01;
+          uint32_t EPVF = (esr >> 1) & 0x01;
+          uint32_t BOFF = (esr >> 2) & 0x01;
       }
     }
   }
